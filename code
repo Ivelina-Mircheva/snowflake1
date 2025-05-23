@@ -1,0 +1,141 @@
+--1. Създайте подходяща база данни и схема към нея;
+
+CREATE DATABASE SPARROW_CUSTOMERS_ORDERS;
+CREATE SCHEMA customers_orders;
+
+--2. Създайте ФАЙЛ ФОРМАТ, подходящ за СТЕИДЖА
+
+CREATE FILE FORMAT json_file_format
+TYPE = JSON;
+
+--3. Създайте вътрешен СТЕИДЖ - добавете, коментар към стеиджа (проверете в документацията);
+
+CREATE STAGE internal_stage
+COMMENT = 'internal_stage';
+
+LIST @internal_stage;
+
+--4. Качете JSON файловете.
+
+--5. Създайте подходящи таблици за суровите данни:
+-- raw_customers_json
+-- raw_orders_json
+
+CREATE TABLE raw_customers_json(
+    record_id INT AUTOINCREMENT,
+    customers_json VARIANT
+);
+
+CREATE TABLE raw_orders_json(
+    record_id INT AUTOINCREMENT,
+    orders_json VARIANT
+);
+
+--6. Създайте подходящи таблици за същинските данни:
+-- td_customers
+-- td_orders
+-- td_order_items
+
+CREATE TABLE td_customers(
+customer_id string,
+name string,
+email string,
+registration_date datetime,
+address string,
+loyalty_points int
+);
+
+CREATE TABLE td_orders(
+order_id string,
+customer_id string,
+order_date datetime,
+total_amount decimal,
+shipping_method string
+);
+
+CREATE TABLE td_order_items(
+product_id string,
+name string,
+quantity int,
+price decimal
+);
+
+--7. Заредете данните от JSON файловете - в таблиците за сурови данни
+
+INSERT INTO raw_customers_json(customers_json)
+SELECT TRY_PARSE_JSON('[
+  {
+    "customer_id": "CUST001",
+    "name": "Alice Wonderland",
+    "email": "alice@example.com",
+    "registration_date": "2023-01-15",
+    "address": {
+      "street": "123 Rabbit Hole",
+      "city": "Fantasy Land",
+      "zip_code": "12345"
+    },
+    "loyalty_points": 1500
+  },
+  {
+    "customer_id": "CUST002",
+    "name": "Bob The Builder",
+    "email": "bob@example.com",
+    "registration_date": "2023-02-20",
+    "address": {
+      "street": "456 Tool Ave",
+      "city": "Construction City",
+      "zip_code": "67890"
+    },
+    "loyalty_points": 800
+  }
+]');
+
+INSERT INTO raw_orders_json(orders_json)
+SELECT TRY_PARSE_JSON('[
+  {
+    "order_id": "ORD1001",
+    "customer_id": "CUST001",
+    "order_date": "2023-10-26T10:00:00Z",
+    "total_amount": 75.50,
+    "items": [
+      {"product_id": "PROD01", "name": "Magic Wand", "quantity": 1, "price": 50.00},
+      {"product_id": "PROD02", "name": "Pointy Hat", "quantity": 1, "price": 25.50}
+    ],
+    "shipping_method": "express"
+  },
+  {
+    "order_id": "ORD1002",
+    "customer_id": "CUST002",
+    "order_date": "2023-10-27T14:30:00Z",
+    "total_amount": 120.00,
+    "items": [
+      {"product_id": "PROD03", "name": "Hammer", "quantity": 2, "price": 30.00},
+      {"product_id": "PROD04", "name": "Screwdriver Set", "quantity": 1, "price": 60.00}
+    ],
+    "shipping_method": "standard"
+  },
+  {
+    "order_id": "ORD1003",
+    "customer_id": "CUST001",
+    "order_date": "2023-10-28T09:15:00Z",
+    "total_amount": 50.00,
+    "items": [
+      {"product_id": "PROD01", "name": "Magic Wand", "quantity": 1, "price": 50.00}
+    ],
+    "shipping_method": "standard"
+  }
+]')
+
+--8. Извлечете данните от суровите таблици и ги разпределете в td_* таблиците
+
+SELECT * FROM raw_customers_json;
+SELECT * FROM raw_orders_json;
+
+
+--9. Създайте таблица, която да съдържа агрегирана информация от броя на потребителите, които са се регистрирали до момента в системата.
+
+--10. Създайте таблица, която да агрегира общото количество продадени продукти и тяхната цена.
+
+--11. Изтриите СУРОВИТЕ таблици.
+DROP TABLE raw_customers_json;
+DROP TABLE raw_orders_json;
